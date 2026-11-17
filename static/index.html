@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home Row Tutor</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <span id="progress"></span>
+    <h1 id="title"></h1>
+    <span id="concept"></span>
+  </header>
+  <section id="lesson">
+    <p id="lesson-text"></p>
+    <pre id="example"></pre>
+    <p id="prompt"></p>
+  </section>
+  <div id="editor"></div>
+  <section id="output" aria-live="polite"></section>
+  <footer>
+    <span id="keys"></span>
+    <span id="message"></span>
+    <span id="status"><span id="tutor"></span> · <span id="mode"></span></span>
+  </footer>
+</main>
+<div id="overlay" hidden><div id="panel"></div></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

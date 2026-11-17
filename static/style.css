@@ -1,0 +1,153 @@
+:root {
+  --bg: #1e2127;
+  --panel: #282c34;
+  --line: #3a3f4b;
+  --text: #c8ccd4;
+  --dim: #7f848e;
+  --accent: #e5c07b;
+  --good: #98c379;
+  --bad: #e06c75;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 var(--mono);
+}
+
+main {
+  height: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 16px 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+h1 { margin: 0; font-size: 17px; font-weight: 600; color: #fff; }
+#progress { color: var(--accent); }
+#concept { color: var(--dim); }
+
+#lesson p { margin: 0 0 6px; max-width: 78ch; }
+#lesson pre {
+  margin: 6px 0 8px;
+  padding: 8px 12px;
+  border-left: 2px solid var(--line);
+  color: var(--dim);
+  font: inherit;
+  overflow-x: auto;
+}
+#prompt { color: #fff; }
+#prompt::before { content: "task  "; color: var(--accent); }
+
+#editor {
+  flex: 1 1 0;
+  min-height: 140px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--panel);
+}
+#editor .cm-editor { height: 100%; font-size: 15px; }
+#editor .cm-editor.cm-focused { outline: none; }
+#editor .cm-scroller { font-family: var(--mono); line-height: 1.6; }
+
+.hint {
+  padding: 2px 0 4px 6px;
+  color: var(--accent);
+  opacity: 0.8;
+  font-style: italic;
+  white-space: pre-wrap;
+}
+.hint::before { content: "# tutor ▸ "; opacity: 0.7; }
+.hint .hint-keys { display: block; opacity: 0.55; font-size: 12px; font-style: normal; }
+
+#output {
+  flex: 0 0 auto;
+  max-height: 30vh;
+  min-height: 3.2em;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--dim);
+}
+#output .pass { color: var(--good); }
+#output .fail { color: var(--bad); }
+#output .review { color: var(--accent); font-style: italic; }
+#output .summary { color: var(--text); }
+
+footer {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 8px 0 10px;
+  border-top: 1px solid var(--line);
+  color: var(--dim);
+  font-size: 12px;
+}
+kbd {
+  font: inherit;
+  color: var(--text);
+  padding: 0 4px;
+  margin-left: 6px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+kbd:first-child { margin-left: 0; }
+#message { color: var(--accent); }
+
+#lesson .note { color: var(--accent); }
+#output .scratch { color: var(--text); border-left: 2px solid var(--line); padding-left: 8px; margin-bottom: 6px; }
+.cm-line.error-line { background: rgba(224, 108, 117, 0.16); box-shadow: inset 3px 0 0 var(--bad); }
+#status { text-align: right; }
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 22, 27, 0.82);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10vh 16px 16px;
+}
+#overlay[hidden] { display: none; }
+#panel {
+  width: min(760px, 100%);
+  max-height: 78vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+.menu-title { color: #fff; font-weight: 600; margin-bottom: 10px; }
+.menu-item { padding: 3px 0; white-space: pre-wrap; }
+.menu-item.selected { color: var(--accent); }
+.menu-detail { color: var(--dim); }
+.menu-text { white-space: pre-wrap; overflow-y: auto; color: var(--text); }
+.menu-keys { color: var(--dim); font-size: 12px; margin-top: 12px; }
+#menu-input {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 6px 8px;
+  outline: none;
+}
+#menu-input:focus { border-color: var(--accent); }
+.cm-vim-panel { padding: 2px 8px; font-family: var(--mono); }
