@@ -13,6 +13,7 @@ import statistics
 import subprocess
 import sys
 import tempfile
+import textwrap
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -23,6 +24,7 @@ ROOT = Path(__file__).resolve().parent
 STATIC = ROOT / "static"
 PACKS_DIR = ROOT / "packs"
 SESSIONS = ROOT / "sessions"
+SOLUTIONS = ROOT / "solutions"
 PORT = int(os.environ.get("TUTOR_PORT", "8421"))
 MODEL = os.environ.get("TUTOR_MODEL", "claude-opus-5-5")
 RUN_TIMEOUT_S = 5
@@ -718,6 +720,87 @@ def generate_pack(topic):
     return {"pack_id": pack_id, "tasks": len(tasks)}
 
 
+# ---------------------------------------------------------------- saved solutions
+
+SOURCE_EXT = {"python": "py", "bash": "sh", "vim": "txt"}
+FENCE = {"python": "python", "bash": "bash", "vim": "text"}
+solutions_lock = threading.Lock()
+
+
+def took(secs):
+    secs = int(secs or 0)
+    return f"{secs // 60}m{secs % 60:02d}s" if secs >= 60 else f"{secs}s"
+
+
+def solve_line(rec):
+    s = rec.get("stats") or {}
+    parts = [f"solved {rec['saved_at'].replace('T', ' ')[:16]}", took(s.get("elapsed_s"))]
+    if s.get("keys"):
+        parts.append(f"{s['keys']} keys (par {s.get('par')})")
+    else:
+        parts.append(f"{s.get('runs', 0)} run{'s' * (s.get('runs', 0) != 1)}")
+    parts.append(f"{s.get('hints', 0)} hint{'s' * (s.get('hints', 0) != 1)}")
+    return ", ".join(parts)
+
+
+def save_solution(record):
+    """Keep the latest solved version of each task as a file, and rebuild the course's README."""
+    pack = PACKS.get(record.get("pack_id"))
+    if not pack:
+        return
+    order = {t["id"]: i for i, t in enumerate(pack["tasks"])}
+    if record.get("task_id") not in order:
+        return
+    folder = SOLUTIONS / pack["id"]
+    with solutions_lock:
+        folder.mkdir(parents=True, exist_ok=True)
+        index_path = folder / "solutions.json"
+        index = json.loads(index_path.read_text()) if index_path.exists() else {}
+        index[record["task_id"]] = {k: record.get(k) for k in ("code", "keys", "stats", "saved_at")}
+        index_path.write_text(json.dumps(index, indent=1))
+
+        n, task = order[record["task_id"]], pack["tasks"][order[record["task_id"]]]
+        rec = index[record["task_id"]]
+        header = [f"{task['title']} ({pack['name']}, task {n + 1} of {len(pack['tasks'])})", ""]
+        header += textwrap.wrap(f"Task: {task['prompt']}", 88) + [solve_line(rec).capitalize()]
+        if rec.get("keys"):
+            header.append(f"Keys typed: {rec['keys']}")
+        body = rec["code"] if not rec.get("keys") else f"Final buffer:\n{rec['code']}"
+        source = "\n".join(f"# {h}".rstrip() for h in header) + "\n\n" + body.rstrip() + "\n"
+        name = f"{n + 1:02d}_{task['id']}.{SOURCE_EXT.get(pack['runner'], 'txt')}"
+        (folder / name).write_text(source)
+
+        solved = [t for t in pack["tasks"] if t["id"] in index]
+        out = [f"# {pack['name']}: my solutions", "",
+               f"{len(solved)} of {len(pack['tasks'])} solved. This file is rebuilt every time you solve a task; "
+               "each solution is also saved as its own file in this folder.", ""]
+        for i, t in enumerate(pack["tasks"], 1):
+            out.append(f"## {i}. {t['title']}")
+            out.append("")
+            r = index.get(t["id"])
+            if not r:
+                out += ["Not solved yet.", ""]
+                continue
+            out += [f"*{t['concept']}* · {solve_line(r)}", "", t["prompt"], ""]
+            if r.get("keys"):
+                out += [f"Keys: `{r['keys']}`", ""]
+            out += [f"```{FENCE.get(pack['runner'], 'text')}", r["code"].rstrip(), "```", ""]
+        (folder / "README.md").write_text("\n".join(out))
+
+
+def rebuild_solutions(paths):
+    count = 0
+    for path in paths:
+        for line in Path(path).read_text().splitlines():
+            try:
+                record = json.loads(line)
+            except ValueError:
+                continue
+            save_solution(record)
+            count += 1
+    print(f"Replayed {count} solves into {SOLUTIONS}/")
+
+
 # ---------------------------------------------------------------- http
 
 CONTENT_TYPES = {
@@ -827,6 +910,10 @@ class Handler(BaseHTTPRequestHandler):
             body["saved_at"] = datetime.datetime.now().isoformat(timespec="seconds")
             with log_lock, open(SESSIONS / f"{datetime.date.today()}.jsonl", "a") as f:
                 f.write(json.dumps(body) + "\n")
+            try:
+                save_solution(body)
+            except Exception as exc:
+                print(f"[tutor] could not save solution: {type(exc).__name__}: {exc}", file=sys.stderr)
             return self.send_json({"ok": True})
         if path == "/api/generate":
             return self.send_json(generate_pack(body.get("topic", "")))
@@ -932,6 +1019,9 @@ def export(dest):
 def main():
     if "--selftest" in sys.argv:
         sys.exit(selftest())
+    if "--rebuild-solutions" in sys.argv:
+        i = sys.argv.index("--rebuild-solutions")
+        return rebuild_solutions(sys.argv[i + 1:] or sorted(SESSIONS.glob("*.jsonl")))
     if "--report" in sys.argv:
         return report()
     if "--export" in sys.argv:

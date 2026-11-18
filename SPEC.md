@@ -28,6 +28,7 @@ Other entry points:
 | `python3 server.py --selftest` | Runs every Python and Bash reference solution through its runner |
 | `node scripts/check_vim.mjs` | Replays every Vim solution in headless Chrome (see the file header) |
 | `python3 server.py --report` | Instructor view: per-task table from the saved session logs |
+| `python3 server.py --rebuild-solutions [logs…]` | Rebuilds `solutions/` from the session logs |
 | `python3 server.py --export dist` | Writes a static, server-less copy (section 12) |
 
 URL parameters: `?pack=<id>&task=<id>` opens a specific exercise, `?speed=10` makes every timer ten times shorter, `?days=2` pretends it is two days later (to see reviews come due).
@@ -63,6 +64,7 @@ packs/<id>/pack.py         a course (or pack.json for generated courses)
 scripts/build_vendor.sh    rebuilds the editor bundle
 scripts/check_vim.mjs      validates the Vim course in a browser
 sessions/                  saved session logs (created at runtime)
+solutions/<course>/        your latest solution to each task, plus README.md with all of them
 ```
 
 ## 3. Courses
@@ -174,7 +176,7 @@ The server binds to `127.0.0.1` and rejects requests whose `Host` is not localho
 | `POST /api/hint` | `{pack_id, task_id, code, cursor_line, level, trigger, question, digest, keys, last_run, prior_hints}` | Plain text; header `X-Hint-Source: ai` or `pack` |
 | `POST /api/review` | `{pack_id, task_id, code, digest, keys, stats}` | Plain text, streamed |
 | `POST /api/generate` | `{topic}` | `{pack_id, tasks}` or `{error}` |
-| `POST /api/log` | attempt record | Appends to `sessions/YYYY-MM-DD.jsonl` |
+| `POST /api/log` | attempt record | Appends to `sessions/YYYY-MM-DD.jsonl` and updates `solutions/` |
 
 Model calls use `output_config.effort = "low"` (medium for course generation) and, through the API, server-side refusal fallbacks. The hint system prompt is fixed; the user message carries the exercise, the reference solution, the author's hints, the current work with the cursor line marked, the last check, the digest, and earlier hints. Any AI failure falls back to authored text and is logged to the terminal.
 
